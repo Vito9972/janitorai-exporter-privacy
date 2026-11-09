@@ -1,0 +1,84 @@
+name: Deploy Privacy Policy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Validate HTML
+        run: |
+          echo "Validating HTML structure..."
+          python3 -c "
+          from html.parser import HTMLParser
+          
+          class Validator(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.external_resources = []
+                  
+              def handle_starttag(self, tag, attrs):
+                  attrs_dict = dict(attrs)
+                  if tag == 'script' and 'src' in attrs_dict:
+                      self.external_resources.append('script')
+                  if tag == 'link' and attrs_dict.get('rel') == 'stylesheet':
+                      self.external_resources.append('css')
+                  if tag == 'img' and 'src' in attrs_dict:
+                      if attrs_dict['src'].startswith('http'):
+                          self.external_resources.append('image')
+          
+          with open('index.html', 'r', encoding='utf-8') as f:
+              content = f.read()
+              validator = Validator()
+              validator.feed(content)
+              
+              if validator.external_resources:
+                  print(f'ERROR: Found external resources: {validator.external_resources}')
+                  exit(1)
+              
+              # Check required content
+              required = [
+                  ('vitoscroll@gmail.com', 'contact email'),
+                  ('Vito9972', 'publisher'),
+                  ('Limited Use', 'compliance statement'),
+                  ('2026-11-10', 'effective date'),
+              ]
+              
+              for text, name in required:
+                  if text not in content:
+                      print(f'ERROR: Missing required content: {name}')
+                      exit(1)
+              
+              print('✓ All validation checks passed')
+          "
+      
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+      
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+      
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

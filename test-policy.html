@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy Tests</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .test-container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+        
+        .test {
+            margin: 20px 0;
+            padding: 15px;
+            border-left: 4px solid #ccc;
+            background: #f8f9fa;
+        }
+        
+        .test.pass {
+            border-left-color: #27ae60;
+            background: #d5f4e6;
+        }
+        
+        .test.fail {
+            border-left-color: #e74c3c;
+            background: #fadbd8;
+        }
+        
+        .test-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .test-result {
+            font-size: 0.9em;
+            color: #666;
+        }
+        
+        .summary {
+            margin-top: 30px;
+            padding: 20px;
+            background: #3498db;
+            color: white;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 1.2em;
+        }
+        
+        .summary.all-pass {
+            background: #27ae60;
+        }
+        
+        .summary.some-fail {
+            background: #e74c3c;
+        }
+        
+        pre {
+            background: #f4f4f4;
+            padding: 10px;
+            overflow-x: auto;
+            border-radius: 3px;
+            font-size: 0.85em;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Privacy Policy Validation Tests</h1>
+        <div id="test-results"></div>
+        <div id="summary" class="summary">Running tests...</div>
+    </div>
+
+    <script>
+        const tests = [];
+        
+        function addTest(name, passed, details) {
+            tests.push({ name, passed, details });
+        }
+        
+        function runTests() {
+            const resultsDiv = document.getElementById('test-results');
+            const summaryDiv = document.getElementById('summary');
+            
+            // Test 1: Fetch and parse the policy HTML
+            fetch('index.html')
+                .then(response => response.text())
+                .then(html => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    
+                    // Test 2: Valid HTML structure
+                    const hasTitle = doc.querySelector('title') !== null;
+                    addTest('Valid HTML with title', hasTitle, hasTitle ? 'Title found' : 'No title element');
+                    
+                    // Test 3: CSP header present
+                    const csp = doc.querySelector('meta[http-equiv="Content-Security-Policy"]');
+                    const hasCSP = csp !== null;
+                    const cspContent = csp ? csp.getAttribute('content') : '';
+                    const hasStrictCSP = cspContent.includes("default-src 'none'");
+                    addTest('Strict Content Security Policy', hasStrictCSP, hasStrictCSP ? `CSP: ${cspContent}` : 'CSP missing or not strict enough');
+                    
+                    // Test 4: No external scripts
+                    const scripts = doc.querySelectorAll('script[src]');
+                    const noExternalScripts = scripts.length === 0;
+                    addTest('No external JavaScript', noExternalScripts, noExternalScripts ? 'No external scripts found' : `Found ${scripts.length} external script(s)`);
+                    
+                    // Test 5: No external stylesheets
+                    const externalCSS = doc.querySelectorAll('link[rel="stylesheet"]');
+                    const noExternalCSS = externalCSS.length === 0;
+                    addTest('No external CSS', noExternalCSS, noExternalCSS ? 'No external stylesheets' : `Found ${externalCSS.length} external stylesheet(s)`);
+                    
+                    // Test 6: No external images
+                    const images = doc.querySelectorAll('img');
+                    const noExternalImages = images.length === 0;
+                    addTest('No external images', noExternalImages, noExternalImages ? 'No images found' : `Found ${images.length} image(s)`);
+                    
+                    // Test 7: No web fonts
+                    const webFonts = doc.querySelectorAll('link[href*="fonts.googleapis.com"], link[href*="fonts.gstatic.com"]');
+                    const noWebFonts = webFonts.length === 0;
+                    addTest('No remote web fonts', noWebFonts, noWebFonts ? 'No remote fonts' : `Found ${webFonts.length} web font link(s)`);
+                    
+                    // Test 8: Both language sections present
+                    const chineseSection = doc.getElementById('chinese');
+                    const englishSection = doc.getElementById('english');
+                    const bothLanguages = chineseSection !== null && englishSection !== null;
+                    addTest('Bilingual content (Chinese + English)', bothLanguages, bothLanguages ? 'Both sections found' : 'Missing language section(s)');
+                    
+                    // Test 9: Required content - contact email
+                    const contactEmail = html.includes('vitoscroll@gmail.com');
+                    addTest('Contact email present', contactEmail, contactEmail ? 'vitoscroll@gmail.com found' : 'Contact email missing');
+                    
+                    // Test 10: Required content - publisher
+                    const publisherInfo = html.includes('Vito9972');
+                    addTest('Publisher information present', publisherInfo, publisherInfo ? 'Vito9972 found' : 'Publisher missing');
+                    
+                    // Test 11: Required content - Limited Use statement
+                    const limitedUse = html.includes('Limited Use') && html.includes('Chrome Web Store');
+                    addTest('Limited Use compliance statement', limitedUse, limitedUse ? 'Limited Use section found' : 'Limited Use statement missing');
+                    
+                    // Test 12: Required caveat - JSON toggle
+                    const jsonCaveat = html.includes('not a scrubber') || html.includes('不是清洗器');
+                    addTest('JSON toggle caveat present', jsonCaveat, jsonCaveat ? 'JSON caveat found' : 'JSON toggle warning missing');
+                    
+                    // Test 13: Deletion limitations explained
+                    const deletionLimits = html.includes('deletion') || html.includes('删除');
+                    addTest('Deletion limitations explained', deletionLimits, deletionLimits ? 'Deletion limits section found' : 'Deletion limits missing');
+                    
+                    // Test 14: Anchor navigation works
+                    const anchors = ['chinese', 'english'];
+                    const allAnchorsExist = anchors.every(id => doc.getElementById(id) !== null);
+                    addTest('Anchor navigation IDs', allAnchorsExist, allAnchorsExist ? 'All navigation anchors found' : 'Some anchors missing');
+                    
+                    // Test 15: Effective date present
+                    const effectiveDate = html.includes('2026-11-10');
+                    addTest('Effective date present', effectiveDate, effectiveDate ? 'Date: 2026-11-10' : 'Effective date missing');
+                    
+                    // Test 16: No analytics scripts
+                    const noAnalytics = !html.includes('google-analytics') && 
+                                       !html.includes('gtag') && 
+                                       !html.includes('analytics.js') &&
+                                       !html.includes('ga(');
+                    addTest('No analytics tracking', noAnalytics, noAnalytics ? 'No analytics code found' : 'Analytics code detected');
+                    
+                    // Test 17: No cookies/localStorage usage
+                    const noCookies = !html.includes('document.cookie') && 
+                                     !html.includes('localStorage.setItem') &&
+                                     !html.includes('sessionStorage.setItem');
+                    addTest('No cookie/storage operations', noCookies, noCookies ? 'No storage operations found' : 'Storage operations detected');
+                    
+                    // Test 18: Accessibility - lang attributes
+                    const hasLangAttrs = doc.querySelector('[lang="zh-CN"]') && doc.querySelector('[lang="en"]');
+                    addTest('Language attributes for accessibility', hasLangAttrs, hasLangAttrs ? 'Lang attributes found' : 'Missing lang attributes');
+                    
+                    // Display results
+                    renderResults();
+                })
+                .catch(error => {
+                    addTest('Fetch index.html', false, `Error: ${error.message}`);
+                    renderResults();
+                });
+        }
+        
+        function renderResults() {
+            const resultsDiv = document.getElementById('test-results');
+            const summaryDiv = document.getElementById('summary');
+            
+            const passed = tests.filter(t => t.passed).length;
+            const total = tests.length;
+            const allPass = passed === total;
+            
+            resultsDiv.innerHTML = tests.map(test => `
+                <div class="test ${test.passed ? 'pass' : 'fail'}">
+                    <div class="test-name">${test.passed ? '✓' : '✗'} ${test.name}</div>
+                    <div class="test-result">${test.details}</div>
+                </div>
+            `).join('');
+            
+            summaryDiv.className = `summary ${allPass ? 'all-pass' : 'some-fail'}`;
+            summaryDiv.innerHTML = `${passed} / ${total} tests passed`;
+            
+            if (allPass) {
+                summaryDiv.innerHTML += '<br><small>✓ Privacy policy page is valid and compliant</small>';
+            }
+        }
+        
+        // Run tests on load
+        runTests();
+    </script>
+</body>
+</html>
